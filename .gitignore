@@ -1,0 +1,11 @@
+__pycache__/
+runs/
+models/
+geo/
+sim/
+render/
+backup/
+video/
+comp/
+
+Load_Log.txt
