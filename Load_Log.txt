@@ -1,0 +1,8 @@
+Load warnings for /mnt/shared-WD/Development/HoudiniReel/ReaL_Crowds/integrate_pytorch.hiplc
+
+Warning:     Bad node type found: pdg_pytorch_rl in /tasks/topnet1.
+             
+
+/tasks/topnet1/pdg_pytorch_rl1:
+
+             Skipping unrecognized parameter "toptabs".

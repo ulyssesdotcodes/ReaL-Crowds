@@ -75,8 +75,13 @@ class ReplayMemory(object):
 
 
 
+<<<<<<< HEAD
 hou.hipFile.load("/mnt/shared-WD/Development/HoudiniReel/ReaL_Crowds/integrate_pytorch.hiplc")
 env = crowd_env.CrowdEnv(hou, "/obj/sim/train_env", "/obj/sim/recorded", 2)
+=======
+hou.hipFile.load("/mnt/shared-WD/Development/HoudiniReel/ReaL_Crowds/crowd_avoid.hiplc")
+env = crowd_env.CrowdEnv(hou, "/obj/sim")
+>>>>>>> ebe7570 (update nov 2021)
 
 env.reset()
 
@@ -90,8 +95,13 @@ EPS_END = 0.05
 EPS_DECAY = 200
 TARGET_UPDATE = 10
 
+<<<<<<< HEAD
 policy_net = DQN(env.obs_size, 2, 234).to(device)
 target_net = DQN(env.obs_size, 2, 234).to(device)
+=======
+policy_net = DQN(env.obs_size, env.action_dims, 234).to(device)
+target_net = DQN(env.obs_size, env.action_dims, 234).to(device)
+>>>>>>> ebe7570 (update nov 2021)
 
 target_net.load_state_dict(policy_net.state_dict())
 target_net.eval()
@@ -103,6 +113,7 @@ steps_done = 0
 
 episode_durations = []
 
+<<<<<<< HEAD
 previous_runs = os.listdir('runs')
 if len(previous_runs) == 0:
   run_num = 1
@@ -110,6 +121,15 @@ else:
   run_num = max([int(s.split('houdini_')[1]) for s in previous_runs]) + 1
 
 run_name = "houdini_%02d" % run_num
+=======
+previous_runs = list(filter(lambda s: "avoid_" in s, os.listdir('runs')))
+if len(previous_runs) == 0:
+  run_num = 1
+else:
+  run_num = max([int(s.split('avoid_')[1]) for s in previous_runs]) + 1
+
+run_name = "avoid_%02d" % run_num
+>>>>>>> ebe7570 (update nov 2021)
 writer = SummaryWriter(os.path.join('runs', run_name))
 
 def select_action(state):
@@ -124,10 +144,23 @@ def select_action(state):
             # second column on max result is index of where max element was
             # found, so we pick action with the larger expected reward.
             ret = policy_net(state)
+<<<<<<< HEAD
             ret = ret.max(0)
             return ret[1].view(1,1)
     else:
         return torch.tensor([random.randrange(2)], device=device, dtype=torch.long)
+=======
+            # print(ret.sparse_mask(env.action_dims))
+            actions = torch.tensor([])
+            p = 0
+            for i in env.action_dims:
+                actions = torch.cat([actions,ret[range(p, p + i)].max(0)[1].view(1,1)[0]])
+                p += i
+            return actions.type(torch.LongTensor)
+    else:
+        actions = list(map(lambda h: random.randrange(h), env.action_dims))
+        return torch.tensor(actions).type(torch.LongTensor)
+>>>>>>> ebe7570 (update nov 2021)
 
 def select_actions(states):
     return list(map(select_action, states))
@@ -159,19 +192,31 @@ def optimize_model(current_step):
                                                 if s is not None])))
 
     state_batch = torch.stack(batch.state)
+<<<<<<< HEAD
     action_batch = torch.cat(tuple(map(lambda x: x.squeeze().unsqueeze(0).unsqueeze(1), batch.action)))
+=======
+    # print(batch.action)
+    action_batch = torch.cat(tuple(map(lambda x: x.unsqueeze(0), batch.action)))
+>>>>>>> ebe7570 (update nov 2021)
     reward_batch = torch.cat(batch.reward)
 
     # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
     # columns of actions taken. These are the actions which would've been taken
     # for each batch state according to policy_net
+<<<<<<< HEAD
     state_action_values = policy_net(state_batch).gather(1, action_batch)
+=======
+    res = policy_net(state_batch)
+    state_action_values = res.gather(1, action_batch)
+    # print(state_action_value)
+>>>>>>> ebe7570 (update nov 2021)
 
     # Compute V(s_{t+1}) for all next states.
     # Expected values of actions for non_final_next_states are computed based
     # on the "older" target_net; selecting their best reward with max(1)[0].
     # This is merged based on the mask, such that we'll have either the expected
     # state value or 0 in case the state was final.
+<<<<<<< HEAD
     next_state_values = torch.zeros(BATCH_SIZE, device=device)
     next_state_values[non_final_mask] = target_net(non_final_next_states).max(1)[0].detach()
     # Compute the expected Q values
@@ -179,6 +224,23 @@ def optimize_model(current_step):
 
     # Compute Huber loss
     loss = F.smooth_l1_loss(state_action_values, expected_state_action_values.unsqueeze(1))
+=======
+    next_state_values = torch.zeros((BATCH_SIZE, env.num_actions), device=device)
+    res = target_net(non_final_next_states)
+    actions = torch.tensor([[]])
+    p = 0
+    for i in env.action_dims:
+        print(res[:,range(p, p + i)].max(1)[0].detach().shape)
+        actions = torch.cat([actions, res[:,range(p, p + i)].max(1)[0].detach()], 1)
+        p += i
+
+    next_state_values[non_final_mask] = actions.detach()
+    # Compute the expected Q values
+    expected_state_action_values = (next_state_values * GAMMA) + torch.cat(2 * [reward_batch], 1)
+
+    # Compute Huber loss
+    loss = F.smooth_l1_loss(state_action_values, expected_state_action_values)
+>>>>>>> ebe7570 (update nov 2021)
 
     # Optimize the model
     optimizer.zero_grad()
@@ -197,7 +259,11 @@ def optimize_model(current_step):
         running_loss = 0
         avg_reward = 0
 
+<<<<<<< HEAD
 num_episodes = 50
+=======
+num_episodes = 200
+>>>>>>> ebe7570 (update nov 2021)
 steps = 0
 for i_episode in range(num_episodes):
     # Initialize the environment and state
@@ -207,7 +273,12 @@ for i_episode in range(num_episodes):
     for t in count():
         # Select and perform an action
         actions = select_actions(states)
+<<<<<<< HEAD
         _, rewards, dones, _ = env.step(list(map(lambda a: a.item(), actions)))
+=======
+        # print(actions)
+        _, rewards, dones, _ = env.step(list(map(lambda a: a.tolist(), actions)))
+>>>>>>> ebe7570 (update nov 2021)
         rewards = list(map(lambda r: torch.tensor([r], device=device), rewards))
 
         # Observe new state
@@ -250,6 +321,6 @@ for i in range(record_count):
     env.record_frame(run_name, i)
     while not env.done():
         actions = select_actions(states)
-        _, rewards, dones, _ = env.step(list(map(lambda a: a.item(), actions)))
+        _, rewards, dones, _ = env.step(list(map(lambda a: a.tolist(), actions)))
         env.record_frame(run_name, i)
         states = get_states()

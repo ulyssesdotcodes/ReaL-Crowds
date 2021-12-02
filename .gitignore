@@ -7,5 +7,8 @@ render/
 backup/
 video/
 comp/
-
-Load_Log.txt
+checkpoints/
+flip/
+tmp/
+results/
+*.mp4
